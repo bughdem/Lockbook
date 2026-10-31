@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lockbook</title>
+<style>
+:root{--bg:#f2f4f3;--card:#fff;--ink:#16211f;--mut:#5d6b68;--line:#d3dbd9;--acc:#0f5f57;--accink:#fff;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0e1413;--card:#172120;--ink:#e6efed;--mut:#92a5a1;--line:#2a3836;--acc:#5ec9bc;--accink:#06201d;--bad:#ff8a80}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0e1413;--card:#172120;--ink:#e6efed;--mut:#92a5a1;--line:#2a3836;--acc:#5ec9bc;--accink:#06201d;--bad:#ff8a80}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 Georgia,"Times New Roman",serif;min-height:100vh}
+main{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:30px;margin:8px 0 4px;letter-spacing:-.01em}
+p.sub{color:var(--mut);margin:0 0 20px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:block;font:600 14px system-ui,sans-serif;margin:14px 0 6px}
+input,textarea{width:100%;font:16px system-ui,sans-serif;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button{font:600 15px system-ui,sans-serif;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+button.bad{color:var(--bad)}
+.full{width:100%;margin-top:18px;padding:13px}
+.msg{color:var(--bad);font:14px system-ui,sans-serif;min-height:20px;margin-top:10px}
+.note{color:var(--mut);font:13px/1.45 system-ui,sans-serif;margin-top:14px}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:14px}
+.bar h1{flex:1;margin:0;font-size:24px}
+.tools{display:flex;gap:8px;margin-bottom:14px}
+.tools input{flex:1}
+.row{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.head{width:100%;text-align:left;border:0;background:none;border-radius:0;padding:12px 14px;display:flex;flex-direction:column;gap:0;font-family:Georgia,serif}
+.head b{font-size:17px}.head span{color:var(--mut);font:14px system-ui,sans-serif}
+.det{padding:4px 14px 14px;border-top:1px solid var(--line);font:15px system-ui,sans-serif}
+.pw{font:16px ui-monospace,Menlo,monospace;word-break:break-all;margin:10px 0}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.acts button{padding:8px 12px;font-size:14px}
+.empty{color:var(--mut);text-align:center;padding:30px 10px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font:14px system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+.hide{display:none!important}
+.foot{display:flex;justify-content:space-between;margin-top:24px;color:var(--mut);font:13px system-ui,sans-serif;align-items:center}
+.foot button{font-size:13px;padding:6px 10px}
+.gen{display:flex;gap:8px}.gen input{flex:1}
+</style></head>
+<body><main>
+
+<section id="lock">
+  <h1>Lockbook</h1>
+  <p class="sub">Your accounts and passwords, locked behind one master password.</p>
+  <form class="panel" id="lf" autocomplete="off">
+    <label for="nm">Vault name</label>
+    <input id="nm" list="vl" placeholder="Your name or role" maxlength="40">
+    <datalist id="vl"></datalist>
+    <label for="pw">Master password</label>
+    <input id="pw" type="password" autocomplete="off">
+    <div id="c2" class="hide">
+      <label for="pw2">Repeat master password</label>
+      <input id="pw2" type="password" autocomplete="off">
+      <p class="note">There is no reset. If this password is forgotten, the vault can’t be opened by anyone, including you. Use 8 or more characters, ideally a long phrase.</p>
+    </div>
+    <button class="pri full" id="go">Unlock</button>
+    <div class="msg" id="m" role="alert"></div>
+  </form>
+  <p class="note">Sharing this device? Each person should create their own vault name and master password. Vaults are stored encrypted on this device only.</p>
+</section>
+
+<section id="app" class="hide">
+  <div class="bar"><h1 id="who"></h1><button id="lk">Lock</button></div>
+  <div class="tools"><input id="q" type="search" placeholder="Search accounts" aria-label="Search accounts"><button class="pri" id="add">Add account</button></div>
+  <form class="panel hide" id="ef" style="margin-bottom:14px" autocomplete="off">
+    <label for="fs">Account or website</label><input id="fs" maxlength="80" placeholder="e.g. Gmail, Bank, Wi-Fi">
+    <label for="fu">Username or email</label><input id="fu" maxlength="120">
+    <label for="fp">Password</label>
+    <div class="gen"><input id="fp" type="password" maxlength="200"><button type="button" id="gn">Generate</button></div>
+    <label for="fn">Note (optional)</label><textarea id="fn" rows="2" maxlength="500"></textarea>
+    <div class="acts" style="margin-top:16px"><button class="pri" id="sv">Save account</button><button type="button" id="cx">Cancel</button></div>
+    <div class="msg" id="em"></div>
+  </form>
+  <div id="list"></div>
+  <div class="foot"><span>Locks after 2 minutes idle</span><button class="bad" id="dv">Delete this vault</button></div>
+</section>
+
+</main>
+<div class="toast" id="t" role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+const enc=new TextEncoder(),dec=new TextDecoder();
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b)));
+const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let store={},name='',key=null,items=[],openId=null,shown=false,editId=null,fails=0,lockUntil=0,idle,hid,armed=null;
+try{store=JSON.parse(localStorage.getItem('lockbook')||'{}')}catch(e){store={}}
+function persist(){try{localStorage.setItem('lockbook',JSON.stringify(store))}catch(e){toast('This browser is blocking storage, so nothing can be saved.')}}
+function h(tag,a,...kids){const e=document.createElement(tag);for(const k in a){if(k==='onclick')e.onclick=a[k];else e.setAttribute(k,a[k])}kids.forEach(x=>e.append(x));return e}
+let tt;function toast(s){const t=$('#t');t.textContent=s;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2200)}
+async function derive(pw,salt){const k=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function seal(){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(items)));store[name].iv=b64(iv);store[name].ct=b64(ct);persist()}
+function msg(s){$('#m').textContent=s}
+function names(){$('#vl').replaceChildren(...Object.keys(store).map(n=>h('option',{value:n})))}
+function mode(){const n=$('#nm').value.trim();const isNew=n&&!store[n];$('#c2').classList.toggle('hide',!isNew);$('#go').textContent=isNew?'Create vault':'Unlock'}
+$('#nm').oninput=mode;names();mode();if(Object.keys(store).length===1){$('#nm').value=Object.keys(store)[0];mode()}
+
+$('#lf').onsubmit=async e=>{e.preventDefault();msg('');
+  const n=$('#nm').value.trim(),p=$('#pw').value;
+  if(!n||!p)return msg('Enter a vault name and master password.');
+  const wait=Math.ceil((lockUntil-Date.now())/1000);
+  if(wait>0)return msg('Too many wrong attempts. Try again in '+wait+' seconds.');
+  $('#go').disabled=true;
+  try{
+    if(!store[n]){
+      if(p.length<8)return msg('Use at least 8 characters.');
+      if(p!==$('#pw2').value)return msg('The two passwords don’t match.');
+      const salt=crypto.getRandomValues(new Uint8Array(16));
+      store[n]={salt:b64(salt)};name=n;key=await derive(p,salt);items=[];await seal();
+    }else{
+      const v=store[n],k=await derive(p,ub(v.salt));
+      try{items=JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(v.iv)},k,ub(v.ct))))}
+      catch(x){fails++;if(fails>=3)lockUntil=Date.now()+Math.min(300,5*2**(fails-3))*1000;return msg('Wrong master password.')}
+      key=k;name=n;fails=0;
+    }
+    $('#pw').value='';$('#pw2').value='';openId=null;
+    $('#lock').classList.add('hide');$('#app').classList.remove('hide');
+    $('#who').textContent=name;render();bump();
+  }catch(x){msg('Something went wrong. This browser may not support secure storage.')}
+  finally{$('#go').disabled=false}
+};
+
+function lock(){key=null;items=[];name='';openId=null;shown=false;clearTimeout(idle);clearTimeout(hid);
+  $('#app').classList.add('hide');$('#ef').classList.add('hide');$('#lock').classList.remove('hide');$('#q').value='';names();mode();$('#pw').value='';}
+function bump(){if(!key)return;clearTimeout(idle);idle=setTimeout(lock,120000)}
+['pointerdown','keydown','scroll'].forEach(ev=>addEventListener(ev,bump,{passive:true}));
+document.addEventListener('visibilitychange',()=>{if(!key)return;if(document.hidden){hid=setTimeout(lock,60000)}else{clearTimeout(hid)}});
+$('#lk').onclick=lock;
+
+function render(){
+  const q=$('#q').value.toLowerCase(),L=$('#list');L.replaceChildren();
+  const rows=items.filter(i=>(i.site+' '+i.user).toLowerCase().includes(q)).sort((a,b)=>a.site.localeCompare(b.site));
+  if(!rows.length){L.append(h('p',{class:'empty'},items.length?'No accounts match your search.':'No accounts yet. Tap “Add account” to save your first one.'));return}
+  rows.forEach(i=>{
+    const open=i.id===openId,d=h('div',{class:'row'});
+    d.append(h('button',{class:'head','aria-expanded':open,onclick:()=>{openId=open?null:i.id;shown=false;armed=null;render()}},h('b',{},i.site),h('span',{},i.user||'No username')));
+    if(open){
+      const det=h('div',{class:'det'});
+      det.append(h('div',{class:'pw'},shown?i.pw:'•'.repeat(Math.min(12,Math.max(6,i.pw.length)))));
+      if(i.note)det.append(h('p',{style:'margin:0 0 12px;color:var(--mut)'},i.note));
+      const a=h('div',{class:'acts'});
+      a.append(h('button',{onclick:()=>{shown=!shown;render()}},shown?'Hide password':'Show password'));
+      a.append(h('button',{class:'pri',onclick:()=>copy(i.pw,'Password copied')},'Copy password'));
+      if(i.user)a.append(h('button',{onclick:()=>copy(i.user,'Username copied')},'Copy username'));
+      a.append(h('button',{onclick:()=>edit(i)},'Edit'));
+      a.append(h('button',{class:'bad',onclick:async()=>{if(armed!==i.id){armed=i.id;render();return}items=items.filter(x=>x.id!==i.id);openId=null;armed=null;await seal();render();toast('Account deleted')}},armed===i.id?'Tap again to delete':'Delete'));
+      det.append(a);d.append(det);
+    }
+    L.append(d);
+  });
+}
+async function copy(s,m){try{await navigator.clipboard.writeText(s);toast(m+'. Clipboard clears in 30 seconds.');setTimeout(()=>navigator.clipboard.writeText('').catch(()=>{}),30000)}catch(e){toast('Copy was blocked. Tap Show password and copy it by hand.')}}
+$('#q').oninput=render;
+
+function edit(i){editId=i?i.id:null;$('#fs').value=i?i.site:'';$('#fu').value=i?i.user:'';$('#fp').value=i?i.pw:'';$('#fp').type='password';$('#fn').value=i?i.note:'';$('#em').textContent='';$('#ef').classList.remove('hide');$('#fs').focus()}
+$('#add').onclick=()=>edit(null);
+$('#cx').onclick=()=>$('#ef').classList.add('hide');
+$('#gn').onclick=()=>{const cs='abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*-_?';const r=crypto.getRandomValues(new Uint32Array(18));$('#fp').value=[...r].map(x=>cs[x%cs.length]).join('');$('#fp').type='text';};
+$('#ef').onsubmit=async e=>{e.preventDefault();
+  const site=$('#fs').value.trim(),pw=$('#fp').value;
+  if(!site||!pw)return $('#em').textContent='Add an account name and a password.';
+  const rec={id:editId||crypto.randomUUID(),site,user:$('#fu').value.trim(),pw,note:$('#fn').value.trim()};
+  if(editId)items=items.map(x=>x.id===editId?rec:x);else items.push(rec);
+  await seal();$('#ef').classList.add('hide');openId=rec.id;shown=false;render();toast('Account saved');
+};
+$('#dv').onclick=()=>{const b=$('#dv');if(!b.dataset.a){b.dataset.a=1;b.textContent='Tap again to erase everything';setTimeout(()=>{delete b.dataset.a;b.textContent='Delete this vault'},4000);return}
+  delete store[name];persist();delete b.dataset.a;b.textContent='Delete this vault';lock();toast('Vault deleted')};
+</script></body></html>
